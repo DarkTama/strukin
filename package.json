@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "license": "GPL-3.0-or-later",
   "description": "Organize trip reimbursements: collect receipts, fill them in manually or auto-extract with an OpenAI-compatible vision model, and export a PDF claim sheet + CSV. Runs fully client-side, deployable free to GitHub Pages.",
   "scripts": {
     "dev": "vite",

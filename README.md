@@ -73,3 +73,9 @@ See [docs/SPEC.md](docs/SPEC.md) for the full design: data model, extraction con
 
 - AI extraction quality depends on the model and image. Photographed paper receipts may need a correction — that's exactly why every auto result lands in an editable review form.
 - This is a personal tool, not multi-user software: data lives in one browser and isn't synced. Use the exports as your durable copies.
+
+## License
+
+Copyright (C) 2026 DarkTama.
+
+Strukin is free software, licensed under the **GNU General Public License v3.0 or later** (GPL-3.0-or-later) — see [LICENSE](LICENSE). You may use, study, share, and modify it; if you distribute a modified version, you must release your changes under the same license.
