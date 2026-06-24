@@ -1,0 +1,24 @@
+{
+  "name": "reimburse-organizer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Organize trip reimbursements: collect receipts, fill them in manually or auto-extract with an OpenAI-compatible vision model, and export a PDF claim sheet + CSV. Runs fully client-side, deployable free to GitHub Pages.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "dexie": "^4.0.10",
+    "dexie-react-hooks": "^1.1.7",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "vite": "^6.0.7"
+  }
+}
