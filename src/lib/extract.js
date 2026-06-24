@@ -58,6 +58,40 @@ function normalizeAmount(v) {
   return Number.isFinite(n) ? n : 0
 }
 
+// Build request headers. The OpenRouter attribution headers are only added for
+// OpenRouter — sending custom headers to other servers just widens the CORS
+// preflight (the server must list them in Access-Control-Allow-Headers).
+function apiHeaders(baseUrl, apiKey, withJson) {
+  const h = { Authorization: `Bearer ${apiKey}` }
+  if (withJson) h['Content-Type'] = 'application/json'
+  if (/openrouter\.ai/i.test(baseUrl || '')) {
+    h['HTTP-Referer'] = window.location.origin
+    h['X-Title'] = 'Strukin'
+  }
+  return h
+}
+
+// GET /models — returns a sorted, de-duped list of model ids the provider
+// exposes (OpenAI-compatible shape: { data: [{ id }] }).
+export async function listModels({ baseUrl, apiKey }) {
+  if (!apiKey) throw new Error('API key belum diatur.')
+  const url = (baseUrl || '').replace(/\/+$/, '') + '/models'
+  let res
+  try {
+    res = await fetch(url, { headers: apiHeaders(baseUrl, apiKey, false) })
+  } catch (e) {
+    throw new Error(`Gagal menghubungi API (${e.message}). Cek base URL / koneksi / CORS.`)
+  }
+  if (!res.ok) {
+    const t = await res.text().catch(() => '')
+    throw new Error(`Gagal memuat model: ${res.status} ${t.slice(0, 150)}`.trim())
+  }
+  const data = await res.json()
+  const arr = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []
+  const ids = arr.map((m) => (typeof m === 'string' ? m : m?.id)).filter(Boolean)
+  return [...new Set(ids)].sort((a, b) => a.localeCompare(b))
+}
+
 export async function extractReceipt({ baseUrl, apiKey, model, blob, categories, signal }) {
   if (!apiKey) throw new Error('API key belum diatur. Buka Settings dulu.')
   if (!model) throw new Error('Model belum diatur. Buka Settings dulu.')
@@ -87,13 +121,7 @@ export async function extractReceipt({ baseUrl, apiKey, model, blob, categories,
     res = await fetch(url, {
       method: 'POST',
       signal,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-        // OpenRouter-specific niceties; harmless for other providers.
-        'HTTP-Referer': window.location.origin,
-        'X-Title': 'Strukin',
-      },
+      headers: apiHeaders(baseUrl, apiKey, true),
       body: JSON.stringify(body),
     })
   } catch (e) {

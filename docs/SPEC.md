@@ -113,6 +113,10 @@ Expected JSON:
 
 Response parsing is defensive: strips markdown fences, falls back to the first `{…}` block, and normalizes all amounts to integers.
 
+`listModels()` does a `GET {baseUrl}/models` and returns a sorted, de-duped list of model ids (Settings exposes a searchable picker). The OpenRouter-only `HTTP-Referer`/`X-Title` headers are sent **only** to `openrouter.ai`; other providers get just `Authorization` (+ `Content-Type` for POST) to keep the CORS preflight minimal.
+
+**CORS.** Requests go directly browser → provider, so the provider must send CORS headers. Self-hosted proxies aimed at CLI tools often don't. A `?worker`-style client fix can't bypass it; the README documents a Vite dev proxy (`VITE_API_PROXY` → `/proxy`), a Caddy reverse-proxy snippet, and the same-origin option.
+
 **Why candidates, not a single amount.** Real receipts print several totals and the *right one to claim is a human judgment call* (in the reference data, two structurally identical Indomaret receipts were claimed at different lines — once `Harga Jual`, once `Total Belanja`). So the model returns every labeled total it finds; the user selects one in the form. The model never silently commits a number.
 
 ## 5. Exports

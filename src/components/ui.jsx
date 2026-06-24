@@ -15,6 +15,8 @@ const PATHS = {
   chevron: 'M9 6l6 6-6 6',
   upload: 'M12 17V5m0 0l-4 4m4-4l4 4M5 21h14',
   loader: 'M12 3a9 9 0 1 0 9 9',
+  refresh: 'M4 4v6h6M20 20v-6h-6M20 9a8 8 0 0 0-14-4M4 15a8 8 0 0 0 14 4',
+  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5',
   sparkles: 'M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6L12 4z',
   camera: 'M4 8h3l2-2h6l2 2h3v11H4V8zm8 3a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7z',
 }

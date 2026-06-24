@@ -32,6 +32,7 @@ Drop in *all* your receipts first, then organize:
 - **Date validation** — a receipt's date must fall within the batch's date range; saving is blocked until it does.
 - Indonesian Rupiah formatting + amount-in-words (*terbilang*).
 - Editable expense categories.
+- **Model picker** — fetch the provider's full model list and search it from Settings.
 - **PDF export** — page 1 is the claim sheet (header, itemized table, per-category subtotals, grand total, *terbilang*, and a right-aligned signature block you can toggle off); following pages are each receipt image, one per page at full size, captioned back to its row.
 - **CSV export** — one row per receipt, UTF-8 with BOM (opens cleanly in Excel).
 - Exports include only completed receipts; drafts are skipped (with a heads-up).
@@ -68,10 +69,49 @@ Requires Node 18+ (developed on Node 24).
 2. In the app, open **Settings** and enter:
    - **Base URL** — e.g. `https://openrouter.ai/api/v1` (default).
    - **API key** — your key (stored only in this browser).
-   - **Model** — any **vision-capable** model, e.g. `google/gemini-2.0-flash-001` or `openai/gpt-4o-mini`.
+   - **Model** — any **vision-capable** model, e.g. `google/gemini-2.0-flash-001` or `openai/gpt-4o-mini`. Click **"Muat daftar model"** to fetch the provider's full model list and search it.
 3. When adding a receipt, upload the image and click **Isi otomatis (AI)**.
 
 Vision calls on small/cheap models cost a fraction of a cent per receipt.
+
+## CORS (self-hosted / local providers)
+
+Strukin calls your API **directly from the browser**, so the provider must send
+CORS headers. Hosted gateways like OpenRouter do; many self-hosted proxies built
+for CLI tools (e.g. [9router](https://github.com/decolua/9router)) **do not**, so
+the browser blocks the request and you see a CORS error. CORS is enforced by the
+browser from the server's response — no client setting can bypass it. Three fixes:
+
+**A. Local dev — Vite proxy (no server changes).** The browser talks only to
+`localhost`; Vite forwards to your provider server-side, so CORS never applies.
+
+1. Copy [.env.example](.env.example) to `.env.local` and set:
+   `VITE_API_PROXY=https://your-host.ts.net`
+2. `npm run dev`
+3. In Settings, set **Base URL** to `/proxy/v1`.
+
+(Dev only — the deployed site can't proxy, so it needs option B or C.)
+
+**B. Add CORS headers at the provider** (works for the deployed site too). Put a
+small reverse proxy in front that allows your origin and answers preflight. With
+[Caddy](https://caddyserver.com):
+
+```caddy
+your-host.ts.net {
+    @cors header Origin *
+    handle @cors {
+        header Access-Control-Allow-Origin "{header.Origin}"
+        header Access-Control-Allow-Methods "GET, POST, OPTIONS"
+        header Access-Control-Allow-Headers "Authorization, Content-Type"
+        @preflight method OPTIONS
+        respond @preflight 204
+    }
+    reverse_proxy localhost:<9router-port>
+}
+```
+
+**C. Same-origin.** Serve Strukin from the same host/port as the API so the
+browser sees one origin and CORS doesn't apply at all.
 
 ## Tech stack
 

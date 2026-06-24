@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { saveSettings } from '../db.js'
-import { Icon } from './ui.jsx'
+import { listModels } from '../lib/extract.js'
+import { Icon, Spinner } from './ui.jsx'
 
 const MODEL_SUGGESTIONS = [
   'google/gemini-2.0-flash-001',
@@ -14,6 +15,10 @@ export default function Settings({ settings, onSaved, onBack }) {
   const [newCat, setNewCat] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [models, setModels] = useState(null)
+  const [modelsLoading, setModelsLoading] = useState(false)
+  const [modelsError, setModelsError] = useState('')
+  const [modelSearch, setModelSearch] = useState('')
 
   useEffect(() => {
     if (settings) setForm({ ...settings })
@@ -36,6 +41,21 @@ export default function Settings({ settings, onSaved, onBack }) {
   const removeCategory = (c) => {
     setForm((f) => ({ ...f, categories: f.categories.filter((x) => x !== c) }))
     setSaved(false)
+  }
+
+  const loadModels = async () => {
+    setModelsLoading(true)
+    setModelsError('')
+    try {
+      const ids = await listModels({ baseUrl: form.baseUrl, apiKey: form.apiKey })
+      setModels(ids)
+      if (!ids.length) setModelsError('Provider tidak mengembalikan daftar model.')
+    } catch (e) {
+      setModelsError(e.message)
+      setModels(null)
+    } finally {
+      setModelsLoading(false)
+    }
   }
 
   const save = async () => {
@@ -142,6 +162,49 @@ export default function Settings({ settings, onSaved, onBack }) {
           <datalist id="model-suggestions">
             {MODEL_SUGGESTIONS.map((m) => <option key={m} value={m} />)}
           </datalist>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
+            <button className="btn btn-sm" onClick={loadModels} disabled={modelsLoading || !form.apiKey}>
+              {modelsLoading ? <Spinner size={15} /> : <Icon name="refresh" size={15} />} Muat daftar model
+            </button>
+            <span className="help" style={{ marginTop: 0 }}>ambil semua model dari provider</span>
+          </div>
+          {modelsError && <div className="error-box" style={{ marginTop: 8 }}>{modelsError}</div>}
+          {models && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ position: 'relative' }}>
+                <Icon name="search" size={15} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-faint)' }} />
+                <input
+                  value={modelSearch}
+                  onChange={(e) => setModelSearch(e.target.value)}
+                  placeholder={`Cari di ${models.length} model…`}
+                  style={{ paddingLeft: 30 }}
+                />
+              </div>
+              <div style={{ maxHeight: 190, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 7, marginTop: 6 }}>
+                {(() => {
+                  const q = modelSearch.trim().toLowerCase()
+                  const matches = models.filter((m) => m.toLowerCase().includes(q))
+                  if (!matches.length) {
+                    return <div style={{ padding: '10px 12px', color: 'var(--text-faint)', fontSize: 13 }}>Tidak ada yang cocok.</div>
+                  }
+                  return matches.slice(0, 300).map((m) => (
+                    <div
+                      key={m}
+                      onClick={() => { setForm((f) => ({ ...f, model: m })); setSaved(false) }}
+                      style={{
+                        padding: '7px 12px', cursor: 'pointer', fontSize: 13,
+                        fontFamily: 'var(--font-mono, monospace)',
+                        background: form.model === m ? 'var(--accent-soft)' : 'transparent',
+                        color: form.model === m ? 'var(--accent)' : 'var(--text)',
+                      }}
+                    >
+                      {m}
+                    </div>
+                  ))
+                })()}
+              </div>
+            </div>
+          )}
           <p className="help">Pakai model yang mendukung input gambar (vision).</p>
         </div>
       </div>
