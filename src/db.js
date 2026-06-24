@@ -3,7 +3,7 @@ import Dexie from 'dexie'
 // All data lives locally in the browser (IndexedDB). Nothing is sent to any
 // server except, in auto mode, the image you choose to send to the LLM
 // provider you configured in Settings.
-export const db = new Dexie('reimburse-organizer')
+export const db = new Dexie('strukin')
 
 db.version(1).stores({
   // ++id = auto-increment primary key. Extra fields are indexed for querying.

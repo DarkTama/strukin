@@ -1,4 +1,4 @@
-# Reimburse Organizer — Specification
+# Strukin — Specification
 
 Design reference for the app. For setup and usage see the [README](../README.md).
 

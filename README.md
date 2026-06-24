@@ -1,4 +1,6 @@
-# Reimburse Organizer
+# Strukin
+
+*From* struk *(receipt) +* -in *— "handle the receipts."*
 
 Turn a pile of trip receipts into a finance-ready **PDF claim sheet + CSV** — without the manual typing.
 
@@ -46,7 +48,7 @@ Requires Node 18+ (developed on Node 24).
 2. In the repo: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 3. Push to `main`. The included workflow ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)) builds the app and publishes it. Your site appears at `https://<user>.github.io/<repo-name>/`.
 
-> **Repo name matters.** Project Pages are served from `/<repo-name>/`, so the production base path must match. If your repo is **not** named `reimburse-organizer`, change `REPO_NAME` in [vite.config.js](vite.config.js) to match.
+> **Repo name matters.** Project Pages are served from `/<repo-name>/`, so the production base path must match. If your repo is **not** named `strukin`, change `REPO_NAME` in [vite.config.js](vite.config.js) to match.
 
 ## Auto mode setup
 

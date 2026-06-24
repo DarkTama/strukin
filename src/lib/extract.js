@@ -92,7 +92,7 @@ export async function extractReceipt({ baseUrl, apiKey, model, blob, categories,
         Authorization: `Bearer ${apiKey}`,
         // OpenRouter-specific niceties; harmless for other providers.
         'HTTP-Referer': window.location.origin,
-        'X-Title': 'Reimburse Organizer',
+        'X-Title': 'Strukin',
       },
       body: JSON.stringify(body),
     })

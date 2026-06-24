@@ -25,7 +25,7 @@ export default function App() {
             onClick={() => setView({ name: 'list' })}
           >
             <span className="logo"><Icon name="receipt" size={16} /></span>
-            Reimburse Organizer
+            Strukin
           </h1>
           <div className="spacer" />
           <button className="btn btn-ghost" onClick={() => setView({ name: 'settings' })}>
