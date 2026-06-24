@@ -21,6 +21,7 @@ export const DEFAULT_SETTINGS = {
   model: 'google/gemini-2.0-flash-001',
   company: '',
   employeeName: '',
+  showSignature: true,
   categories: [
     'Transport',
     'Konsumsi',
@@ -87,6 +88,8 @@ export async function addReceipt(batchId, fields) {
     filename: fields.filename || '',
     source: fields.source || 'manual',
     extraction: fields.extraction || null,
+    // 'draft' = uploaded but not yet completed/confirmed; 'done' = ready.
+    status: fields.status || 'done',
     order: count,
     createdAt: Date.now(),
   })

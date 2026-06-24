@@ -15,14 +15,26 @@ It runs **100% in your browser** and deploys **free to GitHub Pages** — no ser
 
 Both modes save into the same review form, so auto mode is just "manual with the blanks pre-filled."
 
+## Workflow
+
+Drop in *all* your receipts first, then organize:
+
+1. Drag & drop (or pick) many **images and/or PDFs** at once — each becomes a draft receipt marked *"perlu dilengkapi"*.
+2. Either click a draft to fill it in, or hit **"Lengkapi semua dengan AI"** to extract every draft in one go.
+3. Drafts that come back clean (amount found, date within the trip range) flip to done automatically; the rest stay flagged for a quick manual fix.
+4. Add more receipts to the batch anytime.
+
 ## Features
 
 - Group receipts into **batches** (one per trip), kept as history.
+- **Bulk multi-file upload** (drag & drop), images **and PDF** — PDFs are rendered (first page) via pdf.js.
 - Per receipt: date, amount, category, description, merchant, image.
+- **Date validation** — a receipt's date must fall within the batch's date range; saving is blocked until it does.
 - Indonesian Rupiah formatting + amount-in-words (*terbilang*).
 - Editable expense categories.
-- **PDF export** — page 1 is the claim sheet (header, itemized table, per-category subtotals, grand total, *terbilang*, signature block); following pages are each receipt image, one per page at full size, captioned back to its row.
+- **PDF export** — page 1 is the claim sheet (header, itemized table, per-category subtotals, grand total, *terbilang*, and a right-aligned signature block you can toggle off); following pages are each receipt image, one per page at full size, captioned back to its row.
 - **CSV export** — one row per receipt, UTF-8 with BOM (opens cleanly in Excel).
+- Exports include only completed receipts; drafts are skipped (with a heads-up).
 - All data stored locally in **IndexedDB**; settings in IndexedDB too.
 
 ## Privacy

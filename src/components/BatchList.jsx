@@ -111,7 +111,7 @@ function NewBatchModal({ onClose, onCreated }) {
         <input
           value={form.name}
           onChange={set('name')}
-          placeholder="Reimburse Dinas Jatim"
+          placeholder="mis. Dinas Surabaya, Agu 2025"
           autoFocus
         />
       </div>

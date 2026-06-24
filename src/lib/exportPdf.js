@@ -108,19 +108,23 @@ export async function exportPdf(batch, receipts, settings = {}) {
   const terbLines = doc.splitTextToSize('Terbilang: ' + terbilang(total), boxW)
   doc.text(terbLines, boxX, afterTableY + 56)
 
-  // ---- Signatures ----
-  let sigY = Math.max(sy, afterTableY + 56 + terbLines.length * 10) + 36
-  if (sigY > pageH - 96) sigY = pageH - 96
-  doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(70)
-  const leftSigX = margin + 60
-  const rightSigX = pageW / 2 + 70
-  doc.text('Dibuat oleh,', leftSigX, sigY, { align: 'center' })
-  doc.text('Disetujui oleh,', rightSigX, sigY, { align: 'center' })
-  doc.setDrawColor(150)
-  doc.line(leftSigX - 65, sigY + 50, leftSigX + 65, sigY + 50)
-  doc.line(rightSigX - 65, sigY + 50, rightSigX + 65, sigY + 50)
-  doc.text(employee || '( .............................. )', leftSigX, sigY + 63, { align: 'center' })
-  doc.text('( .............................. )', rightSigX, sigY + 63, { align: 'center' })
+  // ---- Signatures (right-aligned, two columns) ----
+  if (settings.showSignature !== false) {
+    let sigY = Math.max(sy, afterTableY + 56 + terbLines.length * 10) + 36
+    if (sigY > pageH - 96) sigY = pageH - 96
+    doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(70)
+    const colW = 150
+    const gap = 24
+    const rightCenter = pageW - margin - colW / 2
+    const leftCenter = rightCenter - colW - gap
+    doc.text('Dibuat oleh,', leftCenter, sigY, { align: 'center' })
+    doc.text('Disetujui oleh,', rightCenter, sigY, { align: 'center' })
+    doc.setDrawColor(150)
+    doc.line(leftCenter - colW / 2, sigY + 50, leftCenter + colW / 2, sigY + 50)
+    doc.line(rightCenter - colW / 2, sigY + 50, rightCenter + colW / 2, sigY + 50)
+    doc.text(employee || '( .............................. )', leftCenter, sigY + 63, { align: 'center' })
+    doc.text('( .............................. )', rightCenter, sigY + 63, { align: 'center' })
+  }
 
   // ---- Receipt pages ----
   for (let i = 0; i < sorted.length; i++) {

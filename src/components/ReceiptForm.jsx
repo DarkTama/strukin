@@ -1,18 +1,21 @@
 import { useRef, useState } from 'react'
-import { addReceipt, updateReceipt, DEFAULT_SETTINGS } from '../db.js'
-import { parseAmount, formatRupiah, todayISO } from '../lib/format.js'
-import { compressImage } from '../lib/image.js'
+import { updateReceipt, DEFAULT_SETTINGS } from '../db.js'
+import { parseAmount, formatRupiah, formatPeriod } from '../lib/format.js'
+import { prepareReceiptImage } from '../lib/image.js'
 import { extractReceipt } from '../lib/extract.js'
 import { Icon, Modal, BlobImage, Spinner } from './ui.jsx'
 
-export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpenSettings }) {
-  const isEdit = !!receipt
+// Edit / complete a single receipt. Both manual entry and AI extraction write
+// into the same fields. Saving is blocked until the date is present and within
+// the batch's date range.
+export default function ReceiptForm({ receipt, batch, settings, onClose, onOpenSettings }) {
+  const isDraft = receipt?.status === 'draft'
   const fileRef = useRef(null)
 
   const [imageBlob, setImageBlob] = useState(receipt?.image || null)
   const [filename, setFilename] = useState(receipt?.filename || '')
   const [form, setForm] = useState({
-    date: receipt?.date || todayISO(),
+    date: receipt?.date || '',
     amount: receipt?.amount ? String(receipt.amount) : '',
     category: receipt?.category || '',
     description: receipt?.description || '',
@@ -32,22 +35,34 @@ export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpe
   const hasKey = !!settings?.apiKey
   const parsedAmount = parseAmount(form.amount)
 
-  const pickFile = async (file) => {
+  const dateError = (() => {
+    if (!form.date) return 'Tanggal wajib diisi.'
+    const s = batch?.startDate
+    const e = batch?.endDate
+    if (s && e && (form.date < s || form.date > e)) {
+      return `Tanggal harus dalam rentang batch (${formatPeriod(s, e)}).`
+    }
+    return ''
+  })()
+
+  const replaceImage = async (file) => {
     if (!file) return
     setError('')
+    setBusy(true)
     try {
-      const compact = await compressImage(file, { maxDim: 1700, quality: 0.85 })
-      setImageBlob(compact)
+      const blob = await prepareReceiptImage(file)
+      setImageBlob(blob)
       setFilename(file.name)
-    } catch {
-      setImageBlob(file)
-      setFilename(file.name)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setBusy(false)
     }
   }
 
   const runAuto = async () => {
     if (!imageBlob) {
-      setError('Pilih gambar struk dulu.')
+      setError('Belum ada gambar.')
       return
     }
     if (!hasKey) {
@@ -81,39 +96,29 @@ export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpe
     }
   }
 
-  const resetForNext = () => {
-    setImageBlob(null)
-    setFilename('')
-    setCandidates([])
-    setSource('manual')
-    setForm((f) => ({ ...f, amount: '', description: '', merchant: '' }))
-  }
-
-  const save = async (addAnother) => {
-    const payload = {
-      date: form.date,
-      amount: parsedAmount,
-      category: form.category,
-      description: form.description.trim(),
-      merchant: form.merchant.trim(),
-      image: imageBlob,
-      imageType: imageBlob?.type || '',
-      filename,
-      source,
-      extraction: candidates.length
-        ? { candidates, model: settings?.model || '' }
-        : receipt?.extraction || null,
+  const save = async () => {
+    if (dateError) {
+      setError(dateError)
+      return
     }
     setBusy(true)
     try {
-      if (isEdit) {
-        await updateReceipt(receipt.id, payload)
-        onClose()
-      } else {
-        await addReceipt(batchId, payload)
-        if (addAnother) resetForNext()
-        else onClose()
-      }
+      await updateReceipt(receipt.id, {
+        date: form.date,
+        amount: parsedAmount,
+        category: form.category,
+        description: form.description.trim(),
+        merchant: form.merchant.trim(),
+        image: imageBlob,
+        imageType: imageBlob?.type || '',
+        filename,
+        source,
+        status: 'done',
+        extraction: candidates.length
+          ? { candidates, model: settings?.model || '' }
+          : receipt?.extraction || null,
+      })
+      onClose()
     } finally {
       setBusy(false)
     }
@@ -121,18 +126,13 @@ export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpe
 
   return (
     <Modal
-      title={isEdit ? 'Edit struk' : 'Tambah struk'}
+      title={isDraft ? 'Lengkapi struk' : 'Edit struk'}
       onClose={onClose}
       wide
       footer={
         <>
           <button className="btn" onClick={onClose} disabled={busy}>Batal</button>
-          {!isEdit && (
-            <button className="btn" onClick={() => save(true)} disabled={busy}>
-              Simpan & tambah lagi
-            </button>
-          )}
-          <button className="btn btn-primary" onClick={() => save(false)} disabled={busy}>
+          <button className="btn btn-primary" onClick={save} disabled={busy || !!dateError}>
             {busy ? <Spinner /> : <Icon name="check" />} Simpan
           </button>
         </>
@@ -143,14 +143,13 @@ export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpe
         <input
           ref={fileRef}
           type="file"
-          accept="image/*"
-          capture="environment"
+          accept="image/*,application/pdf"
           style={{ display: 'none' }}
-          onChange={(e) => pickFile(e.target.files?.[0])}
+          onChange={(e) => replaceImage(e.target.files?.[0])}
         />
         <div
           className="receipt-thumb"
-          style={{ height: 150, borderRadius: 8, cursor: 'pointer', border: '1px dashed var(--border-strong)' }}
+          style={{ height: 160, borderRadius: 8, cursor: 'pointer', border: '1px dashed var(--border-strong)' }}
           onClick={() => fileRef.current?.click()}
         >
           {imageBlob ? (
@@ -158,7 +157,7 @@ export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpe
           ) : (
             <span className="placeholder" style={{ textAlign: 'center' }}>
               <Icon name="upload" size={26} />
-              <div style={{ fontSize: 13, marginTop: 6 }}>Klik untuk pilih / foto struk</div>
+              <div style={{ fontSize: 13, marginTop: 6 }}>Klik untuk pilih gambar / PDF</div>
             </span>
           )}
         </div>
@@ -187,7 +186,15 @@ export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpe
       <div className="field-row">
         <div className="field">
           <label>Tanggal</label>
-          <input type="date" value={form.date} onChange={set('date')} />
+          <input
+            type="date"
+            value={form.date}
+            min={batch?.startDate || undefined}
+            max={batch?.endDate || undefined}
+            onChange={set('date')}
+            style={dateError ? { borderColor: 'var(--danger)' } : undefined}
+          />
+          {dateError && <div className="help" style={{ color: 'var(--danger)' }}>{dateError}</div>}
         </div>
         <div className="field">
           <label>Kategori</label>
@@ -211,7 +218,7 @@ export default function ReceiptForm({ batchId, receipt, settings, onClose, onOpe
                   key={i}
                   type="button"
                   className="radio-card"
-                  style={{ flex: 'none', padding: '6px 10px', ...(active ? {} : {}) }}
+                  style={{ flex: 'none', padding: '6px 10px' }}
                   onClick={() => setForm((f) => ({ ...f, amount: String(c.value) }))}
                 >
                   <span className={active ? 'tag' : ''} style={{ marginRight: 6 }}>{c.label}</span>

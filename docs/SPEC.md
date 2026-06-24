@@ -59,21 +59,39 @@ src/
 | category | string | from the user's category list |
 | description | string | |
 | merchant | string | optional |
-| image | Blob | stored compressed (JPEG, ≤1700px) |
+| image | Blob | stored compressed (JPEG, ≤1700px); PDFs are rendered to JPEG on import |
 | imageType / filename | string | |
 | source | `'manual'` \| `'auto'` | provenance badge |
+| status | `'draft'` \| `'done'` | draft = uploaded but not completed/confirmed |
 | extraction | object \| null | `{ candidates: [{label, value}], model }` |
 | order | number | display order within batch |
 | createdAt | number | |
 
 ### `settings` (single row, key `'app'`)
-`baseUrl`, `apiKey`, `model`, `company`, `employeeName`, `categories[]`.
+`baseUrl`, `apiKey`, `model`, `company`, `employeeName`, `categories[]`, `showSignature`.
 
 Default categories: Transport, Konsumsi, Perbekalan, Kesehatan, Obat, Akomodasi, Lainnya.
 
-## 4. Modes
+## 4. Intake & modes
 
-Both modes converge on `ReceiptForm`. Manual = type the fields. Auto = upload image → "Isi otomatis (AI)" → fields pre-filled, then reviewed.
+### Bulk-first intake
+A batch's dropzone accepts many image/PDF files at once. Each file is normalized
+to a JPEG (`lib/image.js` → `prepareReceiptImage`; PDFs via `lib/pdf.js` →
+`renderPdfFirstPage`, first page only, pdf.js lazy-loaded with a `?worker`
+bundle) and stored as a `status: 'draft'` receipt. Drafts show a "perlu
+dilengkapi" badge and are excluded from totals and exports.
+
+`Lengkapi semua dengan AI` runs extraction over every draft sequentially. A
+draft auto-promotes to `done` only if the result is valid (amount > 0 and date
+within range); otherwise it stays a draft for manual fixing. More files can be
+added to a batch at any time.
+
+### Per-receipt form
+Both modes converge on `ReceiptForm`. Manual = type the fields. Auto = "Isi
+otomatis (AI)" → fields pre-filled, then reviewed. Saving requires a date that
+is present and **within the batch's date range** (`startDate`..`endDate`); the
+save button is disabled and an inline error is shown until it is. A valid save
+sets `status: 'done'`.
 
 ### Extraction contract (`lib/extract.js`)
 
@@ -100,8 +118,10 @@ Response parsing is defensive: strips markdown fences, falls back to the first `
 ## 5. Exports
 
 ### PDF (`lib/exportPdf.js`), A4 portrait
-- **Page 1 — claim sheet:** header (`Laporan Reimbursement`, company, "Perjalanan dinas") · meta (nama, lokasi, periode, jumlah bukti) · table (No, Tanggal, Kategori, Deskripsi, Jumlah) with a Total foot row · per-category subtotals · grand-total box · *terbilang* · signature block (dibuat oleh / disetujui oleh).
+- **Page 1 — claim sheet:** header (`Laporan Reimbursement`, company, "Perjalanan dinas") · meta (nama, lokasi, periode, jumlah bukti) · table (No, Tanggal, Kategori, Deskripsi, Jumlah) with a Total foot row · per-category subtotals · grand-total box · *terbilang* · a right-aligned two-column signature block (dibuat oleh / disetujui oleh), omitted when `settings.showSignature === false`.
 - **Pages 2…N — proof:** one receipt image per page, scaled to fit with a caption (`Bukti N · date · category · merchant · amount`). One-per-page is deliberate so small-text photographed receipts stay legible for finance.
+
+Only `status: 'done'` receipts are exported (the caller filters); if drafts exist the user is warned before the file is generated.
 
 ### CSV (`lib/exportCsv.js`)
 One row per receipt — `No, Tanggal, Kategori, Deskripsi, Merchant, Jumlah (Rp)` — plus a Total row. UTF-8 with BOM for Excel. (Line-item granularity was considered and rejected as noise for reimbursement.)
@@ -117,6 +137,11 @@ One row per receipt — `No, Tanggal, Kategori, Deskripsi, Merchant, Jumlah (Rp)
 | PDF header | Minimal: company / name / location / period | Per user; extra fields add clutter |
 | CSV rows | One per receipt | Matches the original note format |
 | Number words | *terbilang* on the PDF | Standard on Indonesian claim sheets |
+| Intake | Bulk multi-file, then organize | Faster for many receipts, esp. with batch AI |
+| PDF files | Render first page to image (pdf.js) | Keeps thumbnail/AI/export image-based; no PDF embedding |
+| Out-of-range date | Block saving | User chose strict enforcement over a soft warning |
+| Signatures | Right-aligned two columns, toggle | Matches Indonesian convention; optional per preference |
+| pdf.js worker | Vite `?worker` + `workerPort` | `?url`/`workerSrc` hangs under the Vite dev server |
 
 ## 7. Privacy / security model
 

@@ -1,6 +1,22 @@
 // Client-side image helpers: resize/compress before sending to the LLM or
 // embedding in a PDF, and conversions between Blob / data URL / dimensions.
 
+import { isPdf, renderPdfFirstPage } from './pdf.js'
+
+// Turn an uploaded File (image or PDF) into a normalized JPEG Blob ready to
+// store as a receipt image. PDFs are rendered (first page) via pdf.js.
+export async function prepareReceiptImage(file, opts = {}) {
+  if (isPdf(file)) {
+    const blob = await renderPdfFirstPage(file, opts)
+    if (!blob) throw new Error('Gagal membaca PDF.')
+    return blob
+  }
+  if (file.type?.startsWith('image/')) {
+    return compressImage(file, { maxDim: 1700, quality: 0.85, ...opts })
+  }
+  throw new Error(`Tipe file tidak didukung: ${file.name || file.type}`)
+}
+
 // Re-encode a Blob to a (smaller) JPEG Blob, scaled so its longest side is
 // at most maxDim. Used to cut tokens/cost for vision calls and keep PDFs lean.
 export async function compressImage(blob, { maxDim = 1600, quality = 0.82 } = {}) {

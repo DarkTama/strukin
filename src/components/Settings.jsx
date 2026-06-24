@@ -46,6 +46,7 @@ export default function Settings({ settings, onSaved, onBack }) {
       company: form.company,
       employeeName: form.employeeName,
       categories: form.categories,
+      showSignature: form.showSignature !== false,
     })
     setSaved(true)
     onSaved?.()
@@ -74,6 +75,15 @@ export default function Settings({ settings, onSaved, onBack }) {
           </div>
         </div>
         <p className="help">Dipakai sebagai default di header PDF. Bisa ditimpa per-batch.</p>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={form.showSignature !== false}
+            onChange={(e) => { setForm((f) => ({ ...f, showSignature: e.target.checked })); setSaved(false) }}
+            style={{ width: 16, height: 16 }}
+          />
+          <span style={{ fontSize: 14 }}>Tampilkan kolom tanda tangan di PDF</span>
+        </label>
       </div>
 
       <div className="card card-pad" style={{ marginBottom: 18 }}>
